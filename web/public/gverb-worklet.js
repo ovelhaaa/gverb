@@ -46,12 +46,12 @@ class GverbProcessor extends AudioWorkletProcessor {
 
   applyParam(name, value) {
     if (!this.module || !this.handle) return;
-    if (name === 'roomsize') this.module._gverb_set_roomsize(this.handle, value);
-    else if (name === 'revtime') this.module._gverb_set_revtime(this.handle, value);
-    else if (name === 'damping') this.module._gverb_set_damping(this.handle, value);
-    else if (name === 'inputbandwidth') this.module._gverb_set_inputbandwidth(this.handle, value);
-    else if (name === 'earlylevel') this.module._gverb_set_earlylevel(this.handle, value);
-    else if (name === 'taillevel') this.module._gverb_set_taillevel(this.handle, value);
+    if (name === 'roomsize') this.module._gverb_handle_set_roomsize(this.handle, value);
+    else if (name === 'revtime') this.module._gverb_handle_set_revtime(this.handle, value);
+    else if (name === 'damping') this.module._gverb_handle_set_damping(this.handle, value);
+    else if (name === 'inputbandwidth') this.module._gverb_handle_set_inputbandwidth(this.handle, value);
+    else if (name === 'earlylevel') this.module._gverb_handle_set_earlylevel(this.handle, value);
+    else if (name === 'taillevel') this.module._gverb_handle_set_taillevel(this.handle, value);
   }
 
   process(inputs, outputs) {
