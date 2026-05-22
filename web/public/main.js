@@ -41,8 +41,10 @@ function playFrom(offset = state.pausedAt || 0) {
   els.playpause.textContent = '⏸ Pause';
   setStatus('Reproduzindo');
   src.onended = () => {
+    if (state.srcNode !== src) return;
     if (!src.loop) {
       state.pausedAt = 0;
+      state.srcNode = null;
       state.isPlaying = false;
       els.playpause.textContent = '▶️ Play';
       setStatus('Finalizado');
@@ -110,6 +112,12 @@ els.stop.addEventListener('click', () => {
 
 els.seek.addEventListener('input', () => {
   if (!state.buffer) return;
+  const previewPos = Number(els.seek.value) * state.buffer.duration;
+  els.time.textContent = `${fmt(previewPos)} / ${fmt(state.buffer.duration)}`;
+});
+
+els.seek.addEventListener('change', () => {
+  if (!state.buffer) return;
   seekTo(Number(els.seek.value) * state.buffer.duration);
 });
 
@@ -117,8 +125,13 @@ els.rewind.addEventListener('click', () => seekTo(currentPos() - 10));
 els.forward.addEventListener('click', () => seekTo(currentPos() + 10));
 
 els.rate.addEventListener('input', () => {
-  els.rateValue.textContent = `${Number(els.rate.value).toFixed(2)}x`;
-  if (state.isPlaying) playFrom(currentPos());
+  const val = Number(els.rate.value);
+  els.rateValue.textContent = `${val.toFixed(2)}x`;
+  if (state.srcNode) {
+    const pos = currentPos();
+    state.srcNode.playbackRate.value = val;
+    state.startedAt = state.ctx.currentTime - pos / val;
+  }
 });
 
 els.volume.addEventListener('input', () => {
