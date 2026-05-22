@@ -1,29 +1,57 @@
+import createModule from './gverb_wasm.js';
+
 class GverbProcessor extends AudioWorkletProcessor {
-  constructor(options) {
+  constructor() {
     super();
-    const state = options.processorOptions;
-    this.module = state.module;
-    this.handle = this.module._gverb_create(sampleRate, 30, 3, 0.5, 15, 0.9, 0.3, 0.5);
+    this.module = null;
+    this.handle = 0;
 
     this.blockSize = 128;
-    this.ptrIn = this.module._malloc(this.blockSize * 4);
-    this.ptrL = this.module._malloc(this.blockSize * 4);
-    this.ptrR = this.module._malloc(this.blockSize * 4);
+    this.ptrIn = 0;
+    this.ptrL = 0;
+    this.ptrR = 0;
 
-    this.paramMap = {
-      roomsize: this.module._gverb_set_roomsize,
-      revtime: this.module._gverb_set_revtime,
-      damping: this.module._gverb_set_damping,
-      inputbandwidth: this.module._gverb_set_inputbandwidth,
-      earlylevel: this.module._gverb_set_earlylevel,
-      taillevel: this.module._gverb_set_taillevel,
+    this.pendingParams = {
+      roomsize: 30,
+      revtime: 3,
+      damping: 0.5,
+      inputbandwidth: 0.9,
+      earlylevel: 0.3,
+      taillevel: 0.5,
     };
 
     this.port.onmessage = (ev) => {
       const { type, name, value } = ev.data;
-      if (type === 'param' && this.paramMap[name]) this.paramMap[name](this.handle, value);
-      if (type === 'reset') this.module._gverb_reset(this.handle);
+      if (type === 'param' && typeof value === 'number') {
+        this.pendingParams[name] = value;
+        this.applyParam(name, value);
+      }
+      if (type === 'reset' && this.module && this.handle) {
+        this.module._gverb_reset(this.handle);
+      }
     };
+
+    this.initPromise = this.init();
+  }
+
+  async init() {
+    this.module = await createModule();
+    this.handle = this.module._gverb_create(sampleRate, 30, 3, 0.5, 15, 0.9, 0.3, 0.5);
+    this.ptrIn = this.module._malloc(this.blockSize * 4);
+    this.ptrL = this.module._malloc(this.blockSize * 4);
+    this.ptrR = this.module._malloc(this.blockSize * 4);
+
+    Object.entries(this.pendingParams).forEach(([name, value]) => this.applyParam(name, value));
+  }
+
+  applyParam(name, value) {
+    if (!this.module || !this.handle) return;
+    if (name === 'roomsize') this.module._gverb_set_roomsize(this.handle, value);
+    else if (name === 'revtime') this.module._gverb_set_revtime(this.handle, value);
+    else if (name === 'damping') this.module._gverb_set_damping(this.handle, value);
+    else if (name === 'inputbandwidth') this.module._gverb_set_inputbandwidth(this.handle, value);
+    else if (name === 'earlylevel') this.module._gverb_set_earlylevel(this.handle, value);
+    else if (name === 'taillevel') this.module._gverb_set_taillevel(this.handle, value);
   }
 
   process(inputs, outputs) {
@@ -31,10 +59,16 @@ class GverbProcessor extends AudioWorkletProcessor {
     const output = outputs[0];
     if (!output || output.length < 2) return true;
 
-    const inMono = input && input[0] ? input[0] : null;
     const outL = output[0];
     const outR = output[1] || output[0];
 
+    if (!this.module || !this.handle) {
+      outL.fill(0);
+      outR.fill(0);
+      return true;
+    }
+
+    const inMono = input && input[0] ? input[0] : null;
     const heap = this.module.HEAPF32;
     const inIdx = this.ptrIn >> 2;
     const lIdx = this.ptrL >> 2;

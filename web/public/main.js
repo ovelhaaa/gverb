@@ -1,5 +1,3 @@
-import createModule from './gverb_wasm.js';
-
 const els = Object.fromEntries([...document.querySelectorAll('[id]')].map((el) => [el.id, el]));
 const params = [...document.querySelectorAll('[data-param]')];
 
@@ -9,11 +7,10 @@ const fmt = (s) => `${String((s/60)|0).padStart(2,'0')}:${String((s%60)|0).padSt
 
 async function ensureAudio() {
   if (state.ctx) return;
-  const module = await createModule();
   state.ctx = new AudioContext();
   state.gain = state.ctx.createGain();
   await state.ctx.audioWorklet.addModule('./gverb-worklet.js');
-  state.worklet = new AudioWorkletNode(state.ctx, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { module } });
+  state.worklet = new AudioWorkletNode(state.ctx, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
   state.worklet.connect(state.gain).connect(state.ctx.destination);
 
   params.forEach((p) => p.addEventListener('input', () => {
@@ -42,6 +39,12 @@ function currentPos() {
   return Math.min(state.buffer.duration, (state.ctx.currentTime - state.startedAt) * state.srcNode.playbackRate.value);
 }
 
+
+function startTimeLoop() {
+  if (state.raf) return;
+  state.raf = requestAnimationFrame(updateTime);
+}
+
 function updateTime() {
   if (state.buffer) {
     const now = currentPos();
@@ -58,7 +61,7 @@ els.file.addEventListener('change', async (e) => {
   const arr = await file.arrayBuffer();
   state.buffer = await state.ctx.decodeAudioData(arr.slice(0));
   state.pausedAt = 0;
-  updateTime();
+  startTimeLoop();
 });
 els.play.addEventListener('click', async () => { await ensureAudio(); await state.ctx.resume(); playFrom(state.pausedAt); });
 els.pause.addEventListener('click', () => { if (!state.ctx || !state.srcNode) return; state.pausedAt = currentPos(); stopSource(); });
@@ -72,9 +75,8 @@ els.export.addEventListener('click', async () => {
   const sr = state.buffer.sampleRate;
   const len = state.buffer.length;
   const off = new OfflineAudioContext({ numberOfChannels: 2, length: len, sampleRate: sr });
-  const module = await createModule();
   await off.audioWorklet.addModule('./gverb-worklet.js');
-  const node = new AudioWorkletNode(off, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { module } });
+  const node = new AudioWorkletNode(off, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
   params.forEach((p) => node.port.postMessage({ type: 'param', name: p.dataset.param, value: Number(p.value) }));
   const src = off.createBufferSource(); src.buffer = state.buffer; src.connect(node).connect(off.destination); src.start();
   const rendered = await off.startRendering();
