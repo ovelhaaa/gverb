@@ -26,8 +26,8 @@
   <div class="panel">
     <div class="row">
       <input id="file" type="file" accept="audio/*" />
-      <span id="filename" class="pill">Nenhum arquivo carregado</span>
-      <span id="status" class="pill">Pronto</span>
+      <span id="filename" class="pill" role="status" aria-live="polite" aria-atomic="true">Nenhum arquivo carregado</span>
+      <span id="status" class="pill" role="status" aria-live="polite" aria-atomic="true">Pronto</span>
     </div>
 
     <div class="row">
@@ -36,7 +36,7 @@
       <button id="stop">⏹ Stop</button>
       <button id="forward">+10s ⏩</button>
       <button id="export">Exportar WAV processado</button>
-      <label><input id="repeat" type="checkbox" /> Repeat</label>
+      <label><input id="repeat" type="checkbox" /> Repetir</label>
     </div>
 
     <div class="row">
@@ -56,12 +56,12 @@
 
   <div class="panel">
     <h3>Parâmetros do GVerb (tempo real)</h3>
-    <div class="row"><label>Room Size <input data-param="roomsize" type="range" min="1" max="300" step="0.1" value="30" /></label><output data-param-value="roomsize">30.0</output></div>
-    <div class="row"><label>Rev Time <input data-param="revtime" type="range" min="0.1" max="20" step="0.01" value="3" /></label><output data-param-value="revtime">3.00</output></div>
-    <div class="row"><label>Damping <input data-param="damping" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="damping">0.500</output></div>
-    <div class="row"><label>Input BW <input data-param="inputbandwidth" type="range" min="0" max="1" step="0.001" value="0.9" /></label><output data-param-value="inputbandwidth">0.900</output></div>
-    <div class="row"><label>Early Level <input data-param="earlylevel" type="range" min="0" max="1" step="0.001" value="0.3" /></label><output data-param-value="earlylevel">0.300</output></div>
-    <div class="row"><label>Tail Level <input data-param="taillevel" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="taillevel">0.500</output></div>
+    <div class="row"><label>Tamanho da sala <input data-param="roomsize" type="range" min="1" max="300" step="0.1" value="30" /></label><output data-param-value="roomsize">30.0</output></div>
+    <div class="row"><label>Tempo de reverberação <input data-param="revtime" type="range" min="0.1" max="20" step="0.01" value="3" /></label><output data-param-value="revtime">3.00</output></div>
+    <div class="row"><label>Amortecimento <input data-param="damping" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="damping">0.500</output></div>
+    <div class="row"><label>Largura de banda de entrada <input data-param="inputbandwidth" type="range" min="0" max="1" step="0.001" value="0.9" /></label><output data-param-value="inputbandwidth">0.900</output></div>
+    <div class="row"><label>Nível inicial <input data-param="earlylevel" type="range" min="0" max="1" step="0.001" value="0.3" /></label><output data-param-value="earlylevel">0.300</output></div>
+    <div class="row"><label>Nível da cauda <input data-param="taillevel" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="taillevel">0.500</output></div>
   </div>
 
   <script type="module" src="./main.js"></script>

@@ -76,16 +76,25 @@ function updateTime() {
 requestAnimationFrame(updateTime);
 
 els.file.addEventListener('change', async (e) => {
-  await ensureAudio();
   const file = e.target.files?.[0];
   if (!file) return;
   els.filename.textContent = file.name;
   setStatus('Carregando...');
-  const arr = await file.arrayBuffer();
-  state.buffer = await state.ctx.decodeAudioData(arr.slice(0));
-  state.pausedAt = 0;
-  els.time.textContent = `00:00 / ${fmt(state.buffer.duration)}`;
-  setStatus('Arquivo carregado');
+  try {
+    await ensureAudio();
+    const arr = await file.arrayBuffer();
+    state.buffer = await state.ctx.decodeAudioData(arr.slice(0));
+    state.pausedAt = 0;
+    els.time.textContent = `00:00 / ${fmt(state.buffer.duration)}`;
+    setStatus('Arquivo carregado');
+  } catch (err) {
+    console.error('Falha ao carregar arquivo de áudio', err);
+    state.buffer = null;
+    state.pausedAt = 0;
+    els.filename.textContent = 'Nenhum arquivo carregado';
+    els.time.textContent = '00:00 / 00:00';
+    setStatus('Erro ao carregar');
+  }
 });
 
 els.playpause.addEventListener('click', async () => {
@@ -155,26 +164,36 @@ params.forEach((p) => p.addEventListener('input', () => {
 els.export.addEventListener('click', async () => {
   if (!state.buffer) return;
   setStatus('Renderizando exportação...');
-  const sr = state.buffer.sampleRate;
-  const len = state.buffer.length;
-  const off = new OfflineAudioContext({ numberOfChannels: 2, length: len, sampleRate: sr });
-  await off.audioWorklet.addModule('./gverb-worklet.js');
-  const node = new AudioWorkletNode(off, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
-  params.forEach((p) => node.port.postMessage({ type: 'param', name: p.dataset.param, value: Number(p.value) }));
-  const src = off.createBufferSource();
-  src.buffer = state.buffer;
-  src.connect(node).connect(off.destination);
-  src.start();
-  const rendered = await off.startRendering();
+  let src;
+  let node;
+  try {
+    const sr = state.buffer.sampleRate;
+    const len = state.buffer.length;
+    const off = new OfflineAudioContext({ numberOfChannels: 2, length: len, sampleRate: sr });
+    await off.audioWorklet.addModule('./gverb-worklet.js');
+    node = new AudioWorkletNode(off, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+    params.forEach((p) => node.port.postMessage({ type: 'param', name: p.dataset.param, value: Number(p.value) }));
+    src = off.createBufferSource();
+    src.buffer = state.buffer;
+    src.connect(node).connect(off.destination);
+    src.start();
+    const rendered = await off.startRendering();
 
-  const wav = toWav(rendered);
-  const blob = new Blob([wav], { type: 'audio/wav' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${(els.filename.textContent || 'gverb-audio').replace(/\.[^/.]+$/, '')}-processed.wav`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
-  setStatus('Exportado com sucesso');
+    const wav = toWav(rendered);
+    const blob = new Blob([wav], { type: 'audio/wav' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(els.filename.textContent || 'gverb-audio').replace(/\.[^/.]+$/, '')}-processed.wav`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    setStatus('Exportado com sucesso');
+  } catch (err) {
+    try { src?.stop(); } catch {}
+    try { src?.disconnect(); } catch {}
+    try { node?.disconnect(); } catch {}
+    console.error('Falha na exportação do áudio', err);
+    setStatus('Erro na exportação');
+  }
 });
 
 function toWav(buffer) {
