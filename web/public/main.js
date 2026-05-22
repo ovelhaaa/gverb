@@ -13,6 +13,13 @@ async function ensureAudio() {
   state.gain = state.ctx.createGain();
   await state.ctx.audioWorklet.addModule('./gverb-worklet.js');
   state.worklet = new AudioWorkletNode(state.ctx, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+
+  state.worklet.port.onmessage = (ev) => {
+    if (ev.data?.type === 'error') {
+      console.error('Falha ao inicializar GVerb no AudioWorklet', ev.data?.message);
+      setStatus('Erro no processador de áudio (veja o console)');
+    }
+  };
   state.worklet.connect(state.gain).connect(state.ctx.destination);
   params.forEach((p) => p.dispatchEvent(new Event('input')));
 }
