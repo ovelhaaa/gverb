@@ -51,17 +51,17 @@ void gverb_reset(GVerbHandle *h) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_roomsize(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_roomsize(h->engine, v); }
+void gverb_handle_set_roomsize(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_roomsize(h->engine, v); }
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_revtime(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_revtime(h->engine, v); }
+void gverb_handle_set_revtime(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_revtime(h->engine, v); }
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_damping(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_damping(h->engine, v); }
+void gverb_handle_set_damping(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_damping(h->engine, v); }
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_inputbandwidth(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_inputbandwidth(h->engine, v); }
+void gverb_handle_set_inputbandwidth(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_inputbandwidth(h->engine, v); }
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_earlylevel(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_earlylevel(h->engine, v); }
+void gverb_handle_set_earlylevel(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_earlylevel(h->engine, v); }
 EMSCRIPTEN_KEEPALIVE
-void gverb_set_taillevel(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_taillevel(h->engine, v); }
+void gverb_handle_set_taillevel(GVerbHandle *h, float v) { if (h && h->engine) gverb_set_taillevel(h->engine, v); }
 
 EMSCRIPTEN_KEEPALIVE
 void gverb_process(GVerbHandle *h,
