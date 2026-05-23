@@ -1,5 +1,22 @@
 import createModule from './gverb_wasm.js';
 
+if (typeof globalThis.URL === 'undefined') {
+  globalThis.URL = class URL {
+    constructor(path, base) {
+      if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(path)) {
+        this.href = path;
+        return;
+      }
+      const baseHref = String(base || '').replace(/[^/]*$/, '');
+      this.href = `${baseHref}${path}`;
+    }
+
+    toString() {
+      return this.href;
+    }
+  };
+}
+
 class GverbProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
