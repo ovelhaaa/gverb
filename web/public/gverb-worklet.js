@@ -35,13 +35,22 @@ class GverbProcessor extends AudioWorkletProcessor {
   }
 
   async init() {
-    this.module = await createModule();
-    this.handle = this.module._gverb_create(sampleRate, 30, 3, 0.5, 15, 0.9, 0.3, 0.5);
-    this.ptrIn = this.module._malloc(this.blockSize * 4);
-    this.ptrL = this.module._malloc(this.blockSize * 4);
-    this.ptrR = this.module._malloc(this.blockSize * 4);
+    try {
+      this.module = await createModule();
+      this.handle = this.module._gverb_create(sampleRate, 30, 3, 0.5, 15, 0.9, 0.3, 0.5);
+      this.ptrIn = this.module._malloc(this.blockSize * 4);
+      this.ptrL = this.module._malloc(this.blockSize * 4);
+      this.ptrR = this.module._malloc(this.blockSize * 4);
 
-    Object.entries(this.pendingParams).forEach(([name, value]) => this.applyParam(name, value));
+      if (!this.handle || !this.ptrIn || !this.ptrL || !this.ptrR) {
+        throw new Error('Failed to allocate WASM resources');
+      }
+
+      Object.entries(this.pendingParams).forEach(([name, value]) => this.applyParam(name, value));
+      this.port.postMessage({ type: 'ready' });
+    } catch (err) {
+      this.port.postMessage({ type: 'error', message: String(err) });
+    }
   }
 
   applyParam(name, value) {
