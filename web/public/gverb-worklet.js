@@ -42,6 +42,10 @@ class GverbProcessor extends AudioWorkletProcessor {
       this.ptrL = this.module._malloc(this.blockSize * 4);
       this.ptrR = this.module._malloc(this.blockSize * 4);
 
+      if (!this.handle || !this.ptrIn || !this.ptrL || !this.ptrR) {
+        throw new Error('Failed to allocate WASM resources');
+      }
+
       Object.entries(this.pendingParams).forEach(([name, value]) => this.applyParam(name, value));
       this.port.postMessage({ type: 'ready' });
     } catch (err) {
