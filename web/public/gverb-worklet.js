@@ -53,9 +53,7 @@ class GverbProcessor extends AudioWorkletProcessor {
 
   async init() {
     try {
-      this.module = await createModule({
-        locateFile: (path) => path,
-      });
+      this.module = await createModule();
       this.handle = this.module._gverb_create(sampleRate, 30, 3, 0.5, 15, 0.9, 0.3, 0.5);
       this.ptrIn = this.module._malloc(this.blockSize * 4);
       this.ptrL = this.module._malloc(this.blockSize * 4);
