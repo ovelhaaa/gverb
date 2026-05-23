@@ -3,67 +3,74 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>gverb Web Studio</title>
+  <title>Dimension5 Lab</title>
   <style>
-    :root { color-scheme: dark; }
-    body { font-family: Inter, system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 12px; background: #111827; color: #e5e7eb; }
-    h1, h3 { margin: 0 0 12px; }
-    .panel { background: #1f2937; border: 1px solid #374151; padding: 14px; border-radius: 10px; margin-bottom: 12px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-    label { display: inline-flex; gap: 8px; align-items: center; }
-    input[type='range'] { width: 200px; }
-    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #374151; background: #0f172a; color: #e5e7eb; cursor: pointer; }
-    button:hover { background: #111827; }
-    button.primary { background: #1d4ed8; border-color: #2563eb; }
-    .pill { padding: 2px 10px; border-radius: 999px; background: #0f172a; border: 1px solid #374151; font-size: 12px; }
-    .meter { min-width: 100px; font-variant-numeric: tabular-nums; }
-    .grow { flex: 1; min-width: 220px; }
+    :root { color-scheme: dark; --bg:#101317; --panel:#1a2027; --panel2:#232b34; --line:#3a4553; --txt:#ebf1f7; --accent:#ffb020; --ok:#18c79c; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Inter", system-ui, sans-serif; background: radial-gradient(circle at 30% -20%, #27313d 0%, var(--bg) 45%); color: var(--txt); }
+    .shell { max-width: 1060px; margin: 20px auto; padding: 16px; }
+    .rack { border:1px solid #4a5664; background: linear-gradient(180deg,var(--panel2),var(--panel)); border-radius:14px; box-shadow: inset 0 2px 0 rgba(255,255,255,.06), 0 8px 30px rgba(0,0,0,.45); padding:18px; }
+    h1 { margin:0 0 12px; font-size: 1.35rem; letter-spacing: .04em; text-transform: uppercase; }
+    .grid { display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
+    .panel { background:#10161d; border:1px solid var(--line); border-radius:12px; padding:14px; }
+    .drop { border:2px dashed #5f6f82; border-radius:10px; padding:16px; text-align:center; transition:.2s; }
+    .drop.dragging { border-color: var(--accent); background: rgba(255,176,32,.08); }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; margin-top: 10px; }
+    button, .btn { border:1px solid #5d6a78; border-radius:10px; background:#1e2731; color:var(--txt); padding:10px 12px; cursor:pointer; }
+    button:hover, .btn:hover { filter: brightness(1.08); }
+    .accent { border-color:#8d6320; background:#5e4315; }
+    .danger { border-color:#8a2f3b; background:#4a1d23; }
+    input[type=range] { width:100%; }
+    .control { margin: 10px 0; }
+    .cap { display:flex; justify-content:space-between; font-size:.85rem; opacity:.92; }
+    .status { padding:8px 10px; border-radius:999px; border:1px solid #536170; background:#0e141b; font-size:.82rem; }
   </style>
 </head>
 <body>
-  <h1>gverb Web Studio</h1>
+  <main class="shell">
+    <section class="rack">
+      <h1>Dimension5 • Reverb Hardware Deck</h1>
+      <div class="grid">
+        <section class="panel">
+          <div id="dropZone" class="drop">
+            <p>Arraste WAV/MP3 aqui ou selecione manualmente.</p>
+            <input id="fileInput" type="file" accept="audio/wav,audio/mpeg,audio/*" />
+            <div class="row">
+              <span id="fileName" class="status">Nenhum arquivo</span>
+              <span id="status" class="status">Pronto</span>
+            </div>
+          </div>
 
-  <div class="panel">
-    <div class="row">
-      <input id="file" type="file" accept="audio/*" />
-      <span id="filename" class="pill" role="status" aria-live="polite" aria-atomic="true">Nenhum arquivo carregado</span>
-      <span id="status" class="pill" role="status" aria-live="polite" aria-atomic="true">Pronto</span>
-    </div>
+          <div class="row">
+            <button id="play" class="accent">▶ Play</button>
+            <button id="stop" class="danger">■ Stop</button>
+            <button id="export">Exportar WAV</button>
+            <label><input id="loop" type="checkbox" checked /> Loop</label>
+            <label><input id="bypass" type="checkbox" /> Bypass</label>
+          </div>
 
-    <div class="row">
-      <button id="rewind">⏪ -10s</button>
-      <button id="playpause" class="primary">▶️ Play</button>
-      <button id="stop">⏹ Stop</button>
-      <button id="forward">+10s ⏩</button>
-      <button id="export">Exportar WAV processado</button>
-      <label><input id="repeat" type="checkbox" /> Repetir</label>
-    </div>
+          <div class="control">
+            <div class="cap"><span>Timeline</span><span id="time">00:00 / 00:00</span></div>
+            <input id="seek" type="range" min="0" max="1" step="0.001" value="0" />
+          </div>
 
-    <div class="row">
-      <label class="grow">Tempo
-        <input id="seek" type="range" min="0" max="1" step="0.001" value="0" />
-      </label>
-      <span id="time" class="meter">00:00 / 00:00</span>
-    </div>
+          <div class="control">
+            <div class="cap"><span>Saída</span></div>
+            <input id="output" type="range" min="0" max="2" step="0.01" value="1" />
+          </div>
+        </section>
 
-    <div class="row">
-      <label>Volume <input id="volume" type="range" min="0" max="2" step="0.01" value="1" /></label>
-      <output id="volumeValue" class="meter">100%</output>
-      <label>Velocidade <input id="rate" type="range" min="0.5" max="2" step="0.01" value="1" /></label>
-      <output id="rateValue" class="meter">1.00x</output>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h3>Parâmetros do GVerb (tempo real)</h3>
-    <div class="row"><label>Tamanho da sala <input data-param="roomsize" type="range" min="1" max="300" step="0.1" value="30" /></label><output data-param-value="roomsize">30.0</output></div>
-    <div class="row"><label>Tempo de reverberação <input data-param="revtime" type="range" min="0.1" max="20" step="0.01" value="3" /></label><output data-param-value="revtime">3.00</output></div>
-    <div class="row"><label>Amortecimento <input data-param="damping" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="damping">0.500</output></div>
-    <div class="row"><label>Largura de banda de entrada <input data-param="inputbandwidth" type="range" min="0" max="1" step="0.001" value="0.9" /></label><output data-param-value="inputbandwidth">0.900</output></div>
-    <div class="row"><label>Nível inicial <input data-param="earlylevel" type="range" min="0" max="1" step="0.001" value="0.3" /></label><output data-param-value="earlylevel">0.300</output></div>
-    <div class="row"><label>Nível da cauda <input data-param="taillevel" type="range" min="0" max="1" step="0.001" value="0.5" /></label><output data-param-value="taillevel">0.500</output></div>
-  </div>
-
+        <section class="panel">
+          <div class="control"><div class="cap"><span>Roomsize</span><span data-value="roomsize"></span></div><input data-param="roomsize" type="range" min="1" max="300" step="0.1" value="30" /></div>
+          <div class="control"><div class="cap"><span>Revtime</span><span data-value="revtime"></span></div><input data-param="revtime" type="range" min="0.1" max="20" step="0.01" value="3" /></div>
+          <div class="control"><div class="cap"><span>Damping</span><span data-value="damping"></span></div><input data-param="damping" type="range" min="0" max="1" step="0.001" value="0.5" /></div>
+          <div class="control"><div class="cap"><span>Input BW</span><span data-value="inputbandwidth"></span></div><input data-param="inputbandwidth" type="range" min="0" max="1" step="0.001" value="0.9" /></div>
+          <div class="control"><div class="cap"><span>Early Level</span><span data-value="earlylevel"></span></div><input data-param="earlylevel" type="range" min="0" max="1" step="0.001" value="0.3" /></div>
+          <div class="control"><div class="cap"><span>Tail Level</span><span data-value="taillevel"></span></div><input data-param="taillevel" type="range" min="0" max="1" step="0.001" value="0.5" /></div>
+        </section>
+      </div>
+    </section>
+  </main>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
