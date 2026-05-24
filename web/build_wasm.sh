@@ -6,6 +6,11 @@ OUT_DIR="$ROOT_DIR/web/public"
 
 mkdir -p "$OUT_DIR"
 
+if ! command -v emcc >/dev/null 2>&1; then
+  echo "Erro: emcc não encontrado no PATH. Instale/ative o Emscripten SDK antes de executar este build." >&2
+  exit 1
+fi
+
 emcc \
   "$ROOT_DIR/web/src/gverb_wasm.c" \
   "$ROOT_DIR/src/gverb.c" \
@@ -15,6 +20,7 @@ emcc \
   -s MODULARIZE=1 \
   -s EXPORT_ES6=1 \
   -s ENVIRONMENT=web,worker \
+  -s FILESYSTEM=0 \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s SINGLE_FILE=1 \
   -s EXPORTED_FUNCTIONS='["_malloc","_free","_gverb_create","_gverb_destroy","_gverb_reset","_gverb_handle_set_roomsize","_gverb_handle_set_revtime","_gverb_handle_set_damping","_gverb_handle_set_inputbandwidth","_gverb_handle_set_earlylevel","_gverb_handle_set_taillevel","_gverb_process"]' \
