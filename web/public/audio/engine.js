@@ -9,32 +9,84 @@ export class Dimension5Engine {
     this.startedAt = 0;
     this.pausedAt = 0;
     this.loop = true;
+    this.workletReady = false;
+    this.initPromise = null;
   }
 
   async init() {
-    if (this.ctx) return;
-    this.ctx = new AudioContext({ latencyHint: 'interactive' });
-    this.outputGain = this.ctx.createGain();
-    await this.ctx.audioWorklet.addModule('./audio/processor.js');
-    this.worklet = new AudioWorkletNode(this.ctx, 'gverb-processor', {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      channelCountMode: 'explicit',
-      channelCount: 2,
-      outputChannelCount: [2],
-    });
-    this.worklet.port.onmessage = (ev) => {
-      if (ev.data?.type === 'error') this.onStatus(`Erro no worklet: ${ev.data.message}`);
-      if (ev.data?.type === 'ready') this.onStatus('Motor de áudio pronto');
-    };
-    this.worklet.connect(this.outputGain).connect(this.ctx.destination);
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      this.ctx = new AudioContext({ latencyHint: 'interactive' });
+      this.outputGain = this.ctx.createGain();
+      await this.ctx.audioWorklet.addModule('./audio/processor.js');
+      this.worklet = new AudioWorkletNode(this.ctx, 'gverb-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCountMode: 'explicit',
+        channelCount: 2,
+        outputChannelCount: [2],
+      });
+
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          cleanup();
+          reject(new Error('Timeout aguardando inicialização do AudioWorklet'));
+        }, 3000);
+
+        const cleanup = () => {
+          clearTimeout(timeoutId);
+          this.worklet.port.onmessage = null;
+        };
+
+        this.worklet.port.onmessage = (ev) => {
+          if (ev.data?.type === 'error') {
+            this.onStatus(`Erro no worklet: ${ev.data.message}`);
+            cleanup();
+            reject(new Error(ev.data.message || 'Erro desconhecido no worklet'));
+          }
+          if (ev.data?.type === 'ready') {
+            this.workletReady = true;
+            this.onStatus('Motor de áudio pronto');
+            cleanup();
+            resolve();
+          }
+        };
+      });
+
+      this.worklet.connect(this.outputGain).connect(this.ctx.destination);
+    })();
+
+    try {
+      await this.initPromise;
+    } catch (error) {
+      this.initPromise = null;
+      throw error;
+    }
+  }
+
+  stopSource() {
+    if (!this.source) return;
+    try { this.source.stop(); } catch {}
+    try { this.source.disconnect(); } catch {}
+    this.source = null;
   }
 
   async loadFile(file) {
     await this.init();
-    const arrayBuffer = await file.arrayBuffer();
-    this.buffer = await this.ctx.decodeAudioData(arrayBuffer.slice(0));
+    this.stopSource();
     this.pausedAt = 0;
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      this.buffer = await this.ctx.decodeAudioData(arrayBuffer.slice(0));
+      this.pausedAt = 0;
+    } catch (error) {
+      this.stopSource();
+      this.buffer = null;
+      this.pausedAt = 0;
+      throw error;
+    }
   }
 
   setLoop(enabled) {
@@ -52,15 +104,8 @@ export class Dimension5Engine {
     return Math.min(this.buffer.duration, this.ctx.currentTime - this.startedAt);
   }
 
-  stopSource() {
-    if (!this.source) return;
-    try { this.source.stop(); } catch {}
-    this.source.disconnect();
-    this.source = null;
-  }
-
   play(offset = this.pausedAt) {
-    if (!this.buffer || !this.worklet) return;
+    if (!this.buffer || !this.worklet || !this.workletReady) return;
     this.stopSource();
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;

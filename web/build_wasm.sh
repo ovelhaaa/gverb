@@ -6,6 +6,11 @@ OUT_DIR="$ROOT_DIR/web/public"
 
 mkdir -p "$OUT_DIR"
 
+if ! command -v emcc >/dev/null 2>&1; then
+  echo "Erro: emcc não encontrado no PATH. Instale/ative o Emscripten SDK antes de executar este build." >&2
+  exit 1
+fi
+
 emcc \
   "$ROOT_DIR/web/src/gverb_wasm.c" \
   "$ROOT_DIR/src/gverb.c" \

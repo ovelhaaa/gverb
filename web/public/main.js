@@ -28,10 +28,17 @@ function syncParamUI() {
 
 async function handleFile(file) {
   if (!file) return;
-  await engine.loadFile(file);
-  fileNameEl.textContent = file.name;
-  statusEl.textContent = 'Arquivo pronto para reprodução';
-  seekEl.value = 0;
+  try {
+    await engine.loadFile(file);
+    fileNameEl.textContent = file.name;
+    statusEl.textContent = 'Arquivo pronto para reprodução';
+    seekEl.value = 0;
+  } catch (error) {
+    console.error('Falha ao carregar arquivo de áudio', error);
+    fileNameEl.textContent = 'Nenhum arquivo';
+    seekEl.value = 0;
+    statusEl.textContent = 'Erro ao carregar arquivo de áudio';
+  }
 }
 
 $('#fileInput').addEventListener('change', (e) => handleFile(e.target.files?.[0]));
@@ -95,7 +102,31 @@ async function offlineRender() {
   const node = new AudioWorkletNode(off, 'gverb-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
   const values = Object.fromEntries(controls.map((el) => [el.dataset.param, Number(el.value)]));
   values.bypass = $('#bypass').checked ? 1 : 0;
-  node.port.postMessage({ type: 'batch', values });
+
+  await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout aguardando worklet offline pronto'));
+    }, 3000);
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      node.port.onmessage = null;
+    };
+
+    node.port.onmessage = (event) => {
+      if (event.data?.type === 'error') {
+        cleanup();
+        reject(new Error(event.data.message || 'Erro no worklet offline'));
+      }
+      if (event.data?.type === 'ready') {
+        cleanup();
+        resolve();
+      }
+    };
+
+    node.port.postMessage({ type: 'batch', values });
+  });
 
   const src = off.createBufferSource();
   src.buffer = srcBuffer;

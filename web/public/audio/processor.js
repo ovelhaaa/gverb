@@ -53,18 +53,26 @@ class GverbProcessor extends AudioWorkletProcessor {
 
   ensureHeapForFrames(frameCount) {
     if (!this.module || frameCount <= this.allocatedFrames) return;
+
+    const newPtrIn = this.module._malloc(frameCount * 4);
+    const newPtrL = this.module._malloc(frameCount * 4);
+    const newPtrR = this.module._malloc(frameCount * 4);
+
+    if (!newPtrIn || !newPtrL || !newPtrR) {
+      if (newPtrIn) this.module._free(newPtrIn);
+      if (newPtrL) this.module._free(newPtrL);
+      if (newPtrR) this.module._free(newPtrR);
+      throw new Error('Falha ao alocar buffers WASM');
+    }
+
     if (this.ptrIn) this.module._free(this.ptrIn);
     if (this.ptrL) this.module._free(this.ptrL);
     if (this.ptrR) this.module._free(this.ptrR);
 
-    this.ptrIn = this.module._malloc(frameCount * 4);
-    this.ptrL = this.module._malloc(frameCount * 4);
-    this.ptrR = this.module._malloc(frameCount * 4);
+    this.ptrIn = newPtrIn;
+    this.ptrL = newPtrL;
+    this.ptrR = newPtrR;
     this.allocatedFrames = frameCount;
-
-    if (!this.ptrIn || !this.ptrL || !this.ptrR) {
-      throw new Error('Falha ao alocar buffers WASM');
-    }
   }
 
   applyParam(name, value) {
